@@ -1,10 +1,11 @@
 class Modeling {
   constructor() {
-    this.canvas = this.getElement("canvas");
-    this.ctx = this.canvas.getContext("2d");
+    this.graph = d3.select("#graph");
+    this.width = this.graph.attr("width");
+    this.height = this.graph.attr("height");
 
-    this.x0 = this.canvas.width / 2;
-    this.y0 = this.canvas.height / 2;
+    this.x0 = this.width / 2;
+    this.y0 = this.height / 2;
     this.x = 0;
     this.y = 0;
     this.angle = 0;
@@ -24,51 +25,48 @@ class Modeling {
   }
 
   drawAxes() {
-    const { ctx, canvas } = this;
+    const { graph, width, height } = this;
 
-    ctx.strokeStyle = "black";
-    ctx.lineWidth = 2;
+    graph
+      .append("line")
+      .attr("x1", 0)
+      .attr("y1", height / 2)
+      .attr("x2", width)
+      .attr("y2", height / 2)
+      .attr("stroke", "black")
+      .attr("stroke-width", 2);
 
-    // Малюємо горизонтальну вісь (X)
-    ctx.beginPath();
-    ctx.moveTo(0, canvas.height / 2);
-    ctx.lineTo(canvas.width, canvas.height / 2);
-    ctx.stroke();
-
-    // Малюємо вертикальну вісь (Y)
-    ctx.beginPath();
-    ctx.moveTo(canvas.width / 2, 0);
-    ctx.lineTo(canvas.width / 2, canvas.height);
-    ctx.stroke();
+    graph
+      .append("line")
+      .attr("x1", width / 2)
+      .attr("y1", 0)
+      .attr("x2", width / 2)
+      .attr("y2", height)
+      .attr("stroke", "black")
+      .attr("stroke-width", 2);
   }
 
   drawLines(numberOfLines, operation) {
-    const ctx = this.canvas.getContext("2d");
-    ctx.strokeStyle = "#0fdb0f";
-    ctx.lineWidth = 2;
-
-    let interval = operation === "horizontal" ? this.canvas.height / numberOfLines : this.canvas.width / numberOfLines;
+    let interval = operation === "horizontal" ? this.height / numberOfLines : this.width / numberOfLines;
 
     for (let i = 1; i < numberOfLines; i++) {
       // Змінено `<=` на `<`
       let pos = interval * i;
-      ctx.beginPath();
 
-      if (operation === "horizontal") {
-        ctx.moveTo(0, pos);
-        ctx.lineTo(this.canvas.width, pos);
-      } else {
-        ctx.moveTo(pos, 0);
-        ctx.lineTo(pos, this.canvas.height);
-      }
-
-      ctx.stroke();
+      this.graph
+        .append("line")
+        .attr("x1", operation === "horizontal" ? 0 : pos)
+        .attr("y1", operation === "horizontal" ? pos : 0)
+        .attr("x2", operation === "horizontal" ? this.width : pos)
+        .attr("y2", operation === "horizontal" ? pos : this.height)
+        .attr("stroke", "#0fdb0f")
+        .attr("stroke-width", 2);
     }
   }
 
   readingData() {
-    this.x0 = this.canvas.width / 2 + parseFloat(this.getElement("x0").value);
-    this.y0 = this.canvas.height / 2 + parseFloat(this.getElement("y0").value);
+    this.x0 = this.width / 2 + parseFloat(this.getElement("x0").value);
+    this.y0 = this.height / 2 + parseFloat(this.getElement("y0").value);
 
     this.angle = (parseFloat(this.getElement("angle").value) * Math.PI) / 180;
     this.v0 = parseFloat(this.getElement("velocity").value);
@@ -83,18 +81,18 @@ class Modeling {
 
   createTrajectory() {
     this.readingData();
-    this.ctx.fillStyle = this.color;
-    this.ctx.moveTo(this.x0, this.canvas.height - this.y0);
 
     let maxIterations = 10000;
 
-    while (
-      this.x >= 0 &&
-      this.x < this.canvas.width &&
-      this.y >= 0 &&
-      this.y < this.canvas.height &&
-      maxIterations > 0
-    ) {
+    const trajectoryGroup = this.graph.append("g").attr("class", "trajectory");
+    trajectoryGroup
+      .append("circle")
+      .attr("cx", this.x)
+      .attr("cy", this.height - this.y)
+      .attr("r", 2)
+      .attr("fill", this.color);
+
+    while (this.x >= 0 && this.x < this.width && this.y >= 0 && this.y < this.height && maxIterations > 0) {
       this.x =
         this.x0 +
         this.v0 * Math.cos(this.angle) * this.time +
@@ -104,9 +102,12 @@ class Modeling {
         this.v0 * Math.sin(this.angle) * this.time +
         (this.a / 2) * Math.sin(this.angle) * this.time * this.time;
 
-      this.ctx.beginPath();
-      this.ctx.arc(this.x, this.canvas.height - this.y, 3, 0, Math.PI * 2);
-      this.ctx.fill();
+      trajectoryGroup
+        .append("circle")
+        .attr("cx", this.x)
+        .attr("cy", this.height - this.y)
+        .attr("r", 3)
+        .attr("fill", this.color);
 
       this.time += this.dt;
       maxIterations--;
@@ -114,8 +115,7 @@ class Modeling {
   }
 
   clearCanvas() {
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.drawAxes();
+    this.graph.selectAll(".trajectory").remove();
   }
 }
 
@@ -131,3 +131,4 @@ create.addEventListener("click", () => {
 clear.addEventListener("click", () => {
   canvas.clearCanvas();
 });
+
