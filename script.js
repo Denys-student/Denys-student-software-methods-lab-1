@@ -50,7 +50,6 @@ class Modeling {
     let interval = operation === "horizontal" ? this.height / numberOfLines : this.width / numberOfLines;
 
     for (let i = 1; i < numberOfLines; i++) {
-      // Змінено `<=` на `<`
       let pos = interval * i;
 
       this.graph
